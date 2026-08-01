@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migration
+  namespace: taskapp
+  annotations:
+    # sync-wave: "-1" tells Argo CD to apply this before Deployments
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  # Never restart — if the migration fails, it should be investigated, not retried blindly
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migration
+          image: ghcr.io/ts-a-devops/taskapp-backend:5d6b8fc
+          command: ["alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: backend-config
+            - secretRef:
+                name: backend-secret
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"

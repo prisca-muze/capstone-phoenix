@@ -1,47 +1,61 @@
-# Architecture (fill this in)
+# Architecture
 
-## 1. Topology diagram
-> Draw it (ASCII, Excalidraw, draw.io — anything). Show: your nodes, where each TaskApp
-> tier runs, the ingress controller, and the request path.
+## Node Topology
 
 ```
-[ replace with your diagram ]
+Internet
+    │
+    ▼
+AWS Security Group (80/443 open; 22+6443 admin-IP only; inter-node unrestricted)
+    │
+    ▼
+VPC 10.0.0.0/16  Subnet 10.0.1.0/24  (eu-north-1)
+    ├── control-plane  10.0.1.197  (k3s server, etcd, Argo CD, cert-manager, ingress-nginx)
+    ├── worker-0       10.0.1.134  (k3s agent — workloads)
+    └── worker-1       10.0.1.153  (k3s agent — workloads)
 
-  Internet ──DNS──▶ taskapp.<you>.dev / api.<you>.dev
-        │
-        ▼
-  ingress controller (node: ____)  ──TLS terminated by cert-manager──┐
-        │                                                            │
-        ▼                                                            ▼
-  frontend Service ──▶ frontend Pods (nodes: __, __)        backend Service ──▶ backend Pods (nodes: __, __)
-                              │  /api proxy                              │
-                              └────────────────────────────────────────▶│
-                                                                         ▼
-                                                          postgres Service ──▶ postgres-0 (PVC on node __)
+CNI: Calico v3.32.1 (enforces NetworkPolicy)
+Runtime: containerd v2.3.2
+k3s: v1.36.2
 ```
 
-## 2. Node & network
-- Nodes (role, size, AZ/region): …
-- CIDR / subnet choices and why: …
-- Firewall: what's open to the world, what's internal, and why `6443` is closed: …
+## Request Flow
 
-## 3. Request flow (one paragraph)
-> DNS → ingress → TLS → frontend → /api → backend → Postgres. Be specific about names/ports.
+```
+DNS: taskapp.13.62.51.193.sslip.io  →  13.62.51.193 (control-plane externalIP)
+  │
+  ▼ :443  TLS terminated by ingress-nginx (cert from Let's Encrypt via cert-manager)
+  │
+  ├─ /api  →  backend Service :5000  →  backend Pods (2–6, HPA on CPU+mem)
+  │                                         │
+  │                                         ▼
+  │                                    postgres Service (headless, DNS → pod IP)
+  │                                         │
+  │                                         ▼
+  │                                    postgres-0 StatefulSet  (5Gi PVC, local-path)
+  │
+  └─ /     →  frontend Service :80  →  frontend Pods (2 replicas, nginx static)
+```
 
-## 4. The single-server assumptions you fixed  ← graders look here
-> For each, name the assumption that was safe on one box but breaks on a cluster, and the
-> K8s mechanism you used. Minimum: migrations, persistent storage, traffic routing,
-> self-healing, zero-downtime deploys, secrets.
+## Single-Server Assumptions Fixed
 
-| Single-server assumption | Why it breaks at scale | How you fixed it |
-|---|---|---|
-| migrate-on-boot in the entrypoint | 2+ replicas race on `alembic upgrade head` | … |
-| named volume on the host | Pods reschedule across nodes | … |
-| `ports:` published on the host | many Pods, many nodes, one front door needed | … |
-| … | … | … |
+| Core Requirement | Assumption it fixes |
+|---|---|
+| Postgres StatefulSet + PVC | Data on host disk — lost on reschedule |
+| 2+ replicas + topologySpreadConstraints | One process, one node = one failure point |
+| Migration Job (not entrypoint) | Single-replica migration race-free — breaks at 2+ replicas |
+| HPA on backend | Manual scale on one box |
+| RollingUpdate maxUnavailable=0 | docker restart = downtime |
+| Liveness/Readiness probes | No health-aware routing |
+| NetworkPolicy default-deny | Any pod reaches any other pod |
+| PodDisruptionBudget | Node drain kills all replicas simultaneously |
+| Ingress + TLS (cert-manager) | Manual nginx/certbot config on one host |
+| Argo CD GitOps | Manual kubectl apply as deployment mechanism |
 
-## 5. Choices & trade-offs
-- Raw YAML vs Helm vs kustomize — why: …
-- ingress-nginx vs k3s Traefik — why: …
-- CNI / NetworkPolicy enforcement — what and why: …
-- Secrets approach (out-of-band vs Sealed/External Secrets) — why: …
+## GitOps Flow
+
+```
+git push → Argo CD polls repo (every 3 min) → applies diff → cluster matches HEAD
+automated.prune=true   removes deleted resources
+automated.selfHeal=true  reverts manual kubectl changes
+```

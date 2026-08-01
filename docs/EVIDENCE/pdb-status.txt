@@ -1,0 +1,4 @@
+NAME           MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+backend-pdb    1               N/A               5                     8m38s
+frontend-pdb   1               N/A               1                     8m37s
+postgres-pdb   1               N/A               0                     8m37s

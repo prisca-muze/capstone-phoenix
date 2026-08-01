@@ -1,0 +1,9 @@
+NAME                        POD-SELECTOR                              AGE
+allow-acme-solver           acme.cert-manager.io/http01-solver=true   8m17s
+allow-backend-egress        app=backend                               8m19s
+allow-backend-to-postgres   app=postgres                              8m21s
+allow-frontend-egress       app=frontend                              8m18s
+allow-ingress-to-backend    app=backend                               8m20s
+allow-ingress-to-frontend   app=frontend                              8m19s
+allow-postgres-egress       app=postgres                              8m18s
+default-deny-all            <none>                                    8m21s

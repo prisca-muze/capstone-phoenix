@@ -1,0 +1,11 @@
+NAME                        READY   STATUS      RESTARTS      AGE     IP                NODE            NOMINATED NODE   READINESS GATES
+backend-7cc7747569-hd2cm    1/1     Running     0             7m37s   192.168.173.230   ip-10-0-1-197   <none>           <none>
+backend-7cc7747569-l2g8m    1/1     Running     0             16h     192.168.172.136   ip-10-0-1-153   <none>           <none>
+backend-7cc7747569-mcltj    1/1     Running     0             7m37s   192.168.172.140   ip-10-0-1-153   <none>           <none>
+backend-7cc7747569-mxr7b    1/1     Running     0             16h     192.168.173.199   ip-10-0-1-197   <none>           <none>
+backend-7cc7747569-n4555    1/1     Running     0             8m22s   192.168.244.207   ip-10-0-1-134   <none>           <none>
+backend-7cc7747569-pphpp    1/1     Running     0             8m22s   192.168.244.208   ip-10-0-1-134   <none>           <none>
+frontend-6c454ddb7b-lzqqk   1/1     Running     0             16h     192.168.172.137   ip-10-0-1-153   <none>           <none>
+frontend-6c454ddb7b-v4m96   1/1     Running     0             16h     192.168.244.199   ip-10-0-1-134   <none>           <none>
+migration-25pwb             0/1     Completed   2 (16h ago)   16h     <none>            ip-10-0-1-197   <none>           <none>
+postgres-0                  1/1     Running     0             16h     192.168.244.198   ip-10-0-1-134   <none>           <none>

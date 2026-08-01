@@ -1,0 +1,53 @@
+---
+- name: SSH hardening and OS firewall setup
+  hosts: k3s_cluster
+  become: true
+  handlers:
+    - name: Restart SSH Service
+      service:
+        name: ssh
+        state: restarted
+
+  tasks:
+    - name: Disable root login via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        line: "PermitRootLogin no"
+        state: present
+      notify: Restart SSH Service
+
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+        update_cache: true
+
+    - name: Allow SSH through UFW
+      ufw:
+        rule: allow
+        port: "22"
+
+    - name: Allow HTTP through UFW
+      ufw:
+        rule: allow
+        port: "80"
+
+    - name: Allow HTTPS through UFW
+      ufw:
+        rule: allow
+        port: "443"
+
+    - name: Allow internal subnet traffic (k3s inter-node)
+      ufw:
+        rule: allow
+        src: "10.0.1.0/24"
+
+    - name: Allow k3s API server port
+      ufw:
+        rule: allow
+        port: "6443"
+
+    - name: Enable UFW with default deny
+      ufw:
+        state: enabled
+        policy: deny
